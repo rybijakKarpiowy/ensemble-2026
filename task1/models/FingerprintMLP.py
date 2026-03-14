@@ -79,7 +79,11 @@ class FingerprintMLP(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.soft_macro_f1(logits, y)
+        
+        epoch = self.current_epoch
+        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
+            
+        loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
         probs = torch.sigmoid(logits)
         self.train_f1(probs, y)
@@ -92,7 +96,11 @@ class FingerprintMLP(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.soft_macro_f1(logits, y)
+            
+        epoch = self.current_epoch
+        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
+            
+        loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
         # Apply constraint for the tie-breaker/inference
         raw_probs = torch.sigmoid(logits)
