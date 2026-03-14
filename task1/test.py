@@ -35,7 +35,8 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, radius=2, adj_
         use_pharmacophoric_invariants=True,
         include_chirality=True,
         use_bond_types=True,
-        include_ring_membership=True
+        include_ring_membership=True,
+        count=True
     )
     # Using a cache check here is good, but for the final submission, we run fresh
     fps = fp_transformer.transform(test_df['SMILES'].tolist())
