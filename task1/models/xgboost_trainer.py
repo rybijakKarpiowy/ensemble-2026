@@ -85,8 +85,8 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
 
     # ── XGBoost hyperparams from config ───────────────────────────────────────
     xgb_params = dict(
-        n_estimators     = cfg.model.get("n_estimators", 300),
-        max_depth        = cfg.model.get("max_depth", 6),
+        n_estimators     = cfg.model.get("n_estimators", 10),
+        max_depth        = cfg.model.get("max_depth", 10),
         learning_rate    = cfg.model.get("learning_rate", 0.1),
         subsample        = cfg.model.get("subsample", 0.8),
         colsample_bytree = cfg.model.get("colsample_bytree", 0.8),
