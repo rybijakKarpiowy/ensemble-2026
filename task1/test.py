@@ -113,3 +113,6 @@ def main(cfg: DictConfig):
     radius = int(radius_str) if radius_str.isdigit() else 2 # Default to 2 if not found
     
     run_inference(input_file, output_file, checkpoint_path, radius=radius)
+    
+if __name__ == "__main__":
+    main()
