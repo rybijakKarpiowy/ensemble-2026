@@ -33,12 +33,12 @@ class SMILESDataset(Dataset):
     """
 
     def __init__(self, df: pd.DataFrame, tokenizer, max_length: int = 128, label_cols: list = None):
-        self.smiles     = df["smiles"].tolist()
+        self.smiles     = df["SMILES"].tolist()
         self.tokenizer  = tokenizer
         self.max_length = max_length
 
         if label_cols is None:
-            label_cols = [c for c in df.columns if c != "smiles"]
+            label_cols = [c for c in df.columns if c.startswith("class_")]
         self.labels = torch.tensor(df[label_cols].values, dtype=torch.float32)
 
     def __len__(self):
@@ -91,7 +91,7 @@ class SMILESDataModule(L.LightningDataModule):
     ):
         super().__init__()
         self.df           = df
-        self.label_cols   = label_cols or [c for c in df.columns if c != "smiles"]
+        self.label_cols   = label_cols or [c for c in df.columns if c.startswith("class_")]
         self.val_size     = val_size
         self.encoder_name = encoder_name
         self.batch_size   = batch_size
