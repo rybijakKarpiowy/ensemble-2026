@@ -38,7 +38,7 @@ ATOM_TYPES = [
     "K", "Tl", "Yb", "Sb", "Sn", "Ag", "Pd", "Co", "Se",
     "Ti", "Zn", "H", "Li", "Ge", "Cu", "Au", "Ni", "Cd",
     "In", "Mn", "Zr", "Cr", "Pt", "Hg", "Pb", "other",
-]  # 44 elements + other = 45
+]  # 44 elements
 
 HYBRIDIZATION_TYPES = [
     rdchem.HybridizationType.S,
@@ -64,7 +64,7 @@ STEREO_TYPES = [
 ]
 
 # Total feature dimensions (for reference in model)
-ATOM_FEATURE_DIM = 45 + 11 + 1 + 5 + 6 + 1 + 1   # = 70
+ATOM_FEATURE_DIM = 44 + 11 + 1 + 5 + 6 + 1 + 1   # = 70
 BOND_FEATURE_DIM = 4 + 1 + 1 + 4                   # = 10
 
 
