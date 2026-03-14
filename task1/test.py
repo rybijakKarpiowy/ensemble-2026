@@ -28,7 +28,15 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, radius=2, adj_
     
     # 2. Generate Fingerprints (Match training params: 2048, radius 2)
     print("Generating fingerprints...")
-    fp_transformer = ECFPFingerprint(fp_size=2048, radius=radius, n_jobs=-1)
+    fp_transformer = ECFPFingerprint(
+        fp_size=2048,
+        radius=radius,
+        n_jobs=-1,
+        use_pharmacophoric_invariants=True,
+        include_chirality=True,
+        use_bond_types=True,
+        include_ring_membership=True
+    )
     # Using a cache check here is good, but for the final submission, we run fresh
     fps = fp_transformer.transform(test_df['SMILES'].tolist())
     fps = torch.tensor(fps, dtype=torch.float32)
