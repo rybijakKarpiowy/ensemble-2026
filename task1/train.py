@@ -66,7 +66,7 @@ def main(cfg: DictConfig):
             batch_size=512,
             num_workers=8,
             max_length=cfg.model.max_length,
-            seed=cfg.seed,
+            seed=cfg.random_seed,
         )
     else:
         dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
