@@ -125,45 +125,41 @@ class FingerprintMLP(L.LightningModule):
     
     def apply_hierarchy_constraint(self, probs, threshold=0.5):
         """
-        probs: (N, 500) raw sigmoid probabilities from the model
-        threshold: Standard 0.5 classification threshold
+        Greedy top-down single-path constraint.
+        At each active node, only the highest-probability child is activated.
         """
-        # 1. Initial hard predictions based on threshold
-        preds = (probs > threshold).float()
-        
-        # 2. Iterate through the depth (63 levels)
-        # To enforce "Child=1 ONLY IF Parent=1", we propagate Top-Down.
-        # Note: adj_matrix[i, j] = 1 means i is parent, j is child.
-        
-        # We do this 63 times to ensure the constraint 
-        # ripples from the root all the way to the deepest leaf.
-        for _ in range(63):
-            # Find which nodes have at least one parent that is currently 0
-            # (N, 500) @ (500, 500) -> parent_presence[n, j] is > 0 if any parent of j is 1
-            # To find if ALL parents are 0, we can look at the sum.
-            
-            # However, the simpler logic for "Parent must be 1":
-            # preds_child = preds_child AND (at least one parent is 1)
-            # Note: If a node is a root, it has no parents in adj_matrix. 
-            # We must preserve roots.
-            
-            has_parents = (self.adj_matrix.sum(dim=0) > 0).float() # (500,)
-            parent_active = (torch.matmul(preds, self.adj_matrix) > 0).float() # (N, 500)
-            
-            # Logic: If you have parents, you MUST have an active parent to stay 1.
-            # If has_parents is 0 (root), the mask becomes (0 + 1) = 1 (always allowed)
-            # If has_parents is 1, the mask is (parent_active)
-            mask = (1 - has_parents) + (has_parents * parent_active)
-            
-            preds = preds * mask
+        N, C = probs.shape
+        preds = torch.zeros(N, C, device=probs.device)
 
-        # 3. Final Bottom-Up check (The Tie-Breaker)
-        # The competition metric says: If child is 1, parent MUST be 1.
-        # The step above ensures children don't exist without parents.
-        # This step ensures parents exist if children exist.
+        # Activate roots unconditionally (they have no parents)
+        has_parents = (self.adj_matrix.sum(dim=0) > 0)  # (C,)
+        roots = (~has_parents).nonzero(as_tuple=True)[0]
+        preds[:, roots] = (probs[:, roots] > threshold).float()
+
+        # Top-down: for each active node, activate only the best child
         for _ in range(63):
-            preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
-            
+            prev = preds.clone()
+            for i in range(C):
+                children = self.adj_matrix[i].nonzero(as_tuple=True)[0]  # adj[i,j]=1 → j is child of i
+                if len(children) == 0:
+                    continue
+
+                active = preds[:, i].bool()  # samples where node i is active
+                if not active.any():
+                    continue
+
+                child_probs  = probs[active][:, children]          # (n_active, n_children)
+                best_vals, best_idx = child_probs.max(dim=1)       # (n_active,)
+
+                # Only activate if best child clears threshold
+                sample_indices = active.nonzero(as_tuple=True)[0]
+                for k, sample in enumerate(sample_indices):
+                    if best_vals[k] > threshold:
+                        preds[sample, children[best_idx[k]]] = 1.0
+
+            if (preds == prev).all():  # early stop if nothing changed
+                break
+
         return preds
         
 
