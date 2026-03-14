@@ -85,7 +85,7 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
  
     # ── Fingerprints ──────────────────────────────────────────────────────────
     fp_path = cfg.model.get("fingerprints_path", None)
-    X_all   = load_or_compute(fp_path, train_df["SMILES"].tolist(), radius=cfg.radius)
+    X_all   = compute_fingerprints(train_df["SMILES"].tolist(), radius=cfg.radius)
     # Re-index to match the split (train_test_split preserves original index)
     X_train = X_all[train_split.index]
     X_val   = X_all[val_split.index]
