@@ -1,3 +1,5 @@
+import hydra
+from omegaconf import DictConfig
 import torch
 import pandas as pd
 import numpy as np
@@ -18,7 +20,7 @@ class InferenceDataset(Dataset):
     def __getitem__(self, idx):
         return self.features[idx]
 
-def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_path="task1/data/chebi_classes.obo"):
+def run_inference(input_parquet, output_parquet, checkpoint_path, radius=2, adj_matrix_path="task1/data/chebi_classes.obo"):
     # 1. Load Test Data
     print(f"Loading test data from {input_parquet}...")
     train_df = pd.read_parquet("task1/data/chebi_dataset_train.parquet") # Needed for hierarchy and weights
@@ -26,7 +28,7 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_pat
     
     # 2. Generate Fingerprints (Match training params: 2048, radius 2)
     print("Generating fingerprints...")
-    fp_transformer = ECFPFingerprint(fp_size=2048, radius=2, n_jobs=-1)
+    fp_transformer = ECFPFingerprint(fp_size=2048, radius=radius, n_jobs=-1)
     # Using a cache check here is good, but for the final submission, we run fresh
     fps = fp_transformer.transform(test_df['SMILES'].tolist())
     fps = torch.tensor(fps, dtype=torch.float32)
@@ -84,7 +86,8 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_pat
     result_df.to_parquet(output_parquet, index=False)
     print("Done!")
 
-if __name__ == "__main__":
+@hydra.main(config_path="../configs", config_name="config", version_base=None)
+def main(cfg: DictConfig):
     input_file = "task1/data/chebi_dataset_test_empty.parquet"
     output_file = "task1/data/submission.parquet"
     checkpoint_folder = "task1/checkpoints/"
@@ -105,4 +108,8 @@ if __name__ == "__main__":
     checkpoint_path = os.path.join(checkpoint_folder, best_checkpoint)
     print(f"Using checkpoint: {checkpoint_path}")
     
-    run_inference(input_file, output_file, checkpoint_path)
+    # Extract radius
+    radius_str = latest_folder.split("radius_")[-1]
+    radius = int(radius_str) if radius_str.isdigit() else 2 # Default to 2 if not found
+    
+    run_inference(input_file, output_file, checkpoint_path, radius=radius)

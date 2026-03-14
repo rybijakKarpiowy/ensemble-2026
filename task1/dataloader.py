@@ -22,15 +22,15 @@ class FastChemicalDataset(Dataset):
         return x
 
 class ChemicalDataModule(L.LightningDataModule):
-    def __init__(self, df, label_cols, batch_size=1024, num_workers=4, cache_path="task1/fingerprints_cache.pt"):
+    def __init__(self, df, label_cols, batch_size=1024, num_workers=4, cache_path="task1/fingerprints_cache", radius=2):
         super().__init__()
         self.df = df
         self.label_cols = label_cols
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.cache_path = cache_path
+        self.cache_path = cache_path + f"_radius_{radius}.pt"
         # Keep parameters consistent to avoid loading "wrong" cache
-        self.fp_transformer = ECFPFingerprint(fp_size=2048, radius=2, n_jobs=-1)
+        self.fp_transformer = ECFPFingerprint(fp_size=2048, radius=radius, n_jobs=-1)
 
     def setup(self, stage=None):
         # 1. Check for cache

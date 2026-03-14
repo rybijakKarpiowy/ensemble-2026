@@ -28,7 +28,7 @@ def main(cfg: DictConfig):
         train_df, label_cols)
     
     # Initialize DataModule
-    dm = ChemicalDataModule(train_df, label_cols=label_cols)
+    dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
 
     # Initialize Model (from previous snippet)
     model = HierarchicalChemicalClassifier(
@@ -43,7 +43,7 @@ def main(cfg: DictConfig):
     run_id = wandb.util.generate_id() # type: ignore
     checkpoint_callback = ModelCheckpoint(
         monitor="val/macro_f1",
-        dirpath=f"task1/checkpoints/{run_id}",
+        dirpath=f"task1/checkpoints/{run_id}_radius_{cfg.radius}",
         filename="model-{epoch:02d}-{val_macro_f1:.24}",
         mode="max",
         save_top_k=3,
@@ -61,7 +61,7 @@ def main(cfg: DictConfig):
     
     wandb_logger = WandbLogger(
         project="Ensemble-2026-task1",
-        name=f"radius_2_enforce_hierarchy_run_{run_id}",
+        name=f"radius_{cfg.radius}_enforce_hierarchy_run_{run_id}",
         config=OmegaConf.to_container(cfg, resolve=True),
     )
 
