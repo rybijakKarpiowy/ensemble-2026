@@ -1,0 +1,5 @@
+type: gnn
+hidden_dim: 256
+num_layers: 5
+dropout: 0.3
+hierarchy_depth: 63

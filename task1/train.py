@@ -9,6 +9,7 @@ from pandas import read_parquet
 from task1.datasets.dataloader import ChemicalDataModule
 from task1.models.FingerprintMLP import FingerprintMLP
 from task1.models.chemBERTa import SMILESDescriptionModel
+from task1.models.gnn_model import GNNModel
 from task1.utils import prepare_hierarchy_and_weights, set_seed
 
 
@@ -23,18 +24,15 @@ def build_model(cfg, adj_matrix, pos_weights):
             pos_weights=pos_weights,
             lambda_hierarchy=cfg.train.lambda_hierarchy,
         )
-
-    elif model_type == "smiles_description":
-        label_embeddings = torch.load(cfg.model.label_embeddings_path)
-        return SMILESDescriptionModel(
+    elif model_type == "gnn":
+        return GNNModel(
             num_classes=500,
             adj_matrix=adj_matrix,
-            label_embeddings=label_embeddings,
             pos_weights=pos_weights,
-            lr=cfg.train.learning_rate,
-            proj_dim=cfg.model.proj_dim,
+            hidden_dim=cfg.model.hidden_dim,
+            num_layers=cfg.model.num_layers,
             dropout=cfg.model.dropout,
-            smiles_encoder_name=cfg.model.smiles_encoder,
+            lr=cfg.train.learning_rate,
             hierarchy_depth=cfg.model.hierarchy_depth,
         )
 
@@ -57,15 +55,15 @@ def main(cfg: DictConfig):
     
     # DataModule — SMILES column used when model needs it, fingerprints otherwise
     if cfg.model.type == "smiles_description":
-        from task1.datasets.BERTdataset import SMILESDataModule
-        dm = SMILESDataModule(
+        raise NotImplementedError("SMILESDescriptionModel is not fully implemented yet. Use 'fingerprint_mlp' for now.")
+    elif cfg.model.type == "gnn":
+        from task1.datasets.graph_datamodule import MoleculeGraphDataModule
+        dm = MoleculeGraphDataModule(
             df=train_df,
             label_cols=label_cols,
             val_size=0.2,
-            encoder_name=cfg.model.smiles_encoder,
             batch_size=512,
-            num_workers=8,
-            max_length=cfg.model.max_length,
+            num_workers=4,
             seed=cfg.random_seed,
         )
     else:
