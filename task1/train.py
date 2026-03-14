@@ -62,7 +62,7 @@ def main(cfg: DictConfig):
             df=train_df,
             label_cols=label_cols,
             val_size=0.2,
-            batch_size=256,
+            batch_size=128,
             num_workers=4,
             seed=cfg.random_seed,
         )
