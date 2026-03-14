@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+#Task 2
+.hack2026
+task2/data
+task2/data-old
