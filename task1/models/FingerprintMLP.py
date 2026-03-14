@@ -99,33 +99,37 @@ class FingerprintMLP(L.LightningModule):
     #         preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
     #     return preds
     
-    def apply_hierarchy_constraint(self, probs, threshold=0.5, alpha=0.2, beta=0.8):
+    def apply_hierarchy_constraint(self, probs, threshold=0.5, iterations=7, alpha=0.3):
         """
-        probs: (N, 500) raw probabilities
-        alpha: Top-down influence strength (Parent -> Child)
-        beta: Bottom-up influence strength (Child -> Parent)
+        probs: (N, 500) raw sigmoid probabilities
+        iterations: Number of message passing steps (usually 2-5 is enough)
+        alpha: Strength of the influence (0.0 to 1.0)
         """
-        # Use a copy to avoid in-place issues
+        # Work on a copy of probabilities
         refined_probs = probs.clone()
-
-        # With a depth of 63, matrix powers or a loop is necessary.
-        # We use a power-iteration style to let confidence flow.
-        for _ in range(5): # 5 iterations is usually enough for confidence to propagate
-            # 1. Bottom-Up: A child's confidence reinforces the parent
-            # We use a 'beta' weight to ensure parents are strongly supported by children
-            child_to_parent = torch.matmul(refined_probs, self.adj_matrix.T)
-            refined_probs = torch.max(refined_probs, child_to_parent * beta)
+        
+        for _ in range(iterations):
+            # 1. Bottom-Up: Child confidence influences Parent
+            # For each parent, find the MAX confidence of its children
+            # (N, 500) @ (500, 500).T
+            child_influence = torch.matmul(refined_probs, self.adj_matrix.T)
             
-            # 2. Top-Down: A parent's confidence "nudges" the child
-            # This is the "alpha" nudge - helps with those sparse leaf nodes
-            parent_to_child = torch.matmul(refined_probs, self.adj_matrix)
-            refined_probs = refined_probs + (alpha * parent_to_child)
+            # 2. Top-Down: Parent confidence influences Child
+            # For each child, see the confidence of its parent
+            parent_influence = torch.matmul(refined_probs, self.adj_matrix)
             
-            # Keep values in probability space
-            refined_probs = torch.clamp(refined_probs, 0, 1)
+            # 3. Update probabilities softly
+            # We use torch.max for Upward to ensure P(parent) >= P(child)
+            # We use a weighted average for Downward to "nudge" children
+            upward = torch.max(refined_probs, child_influence)
+            downward = refined_probs + (alpha * parent_influence)
+            
+            # Combine and clamp to [0, 1]
+            refined_probs = torch.clamp((upward + downward) / 2, 0, 1)
 
-        # Final hard threshold for the .parquet submission
-        return (refined_probs > threshold).float()
+        # Apply the final threshold for the submission
+        preds = (refined_probs > threshold).float()
+        return preds
         
 
     def configure_optimizers(self):
