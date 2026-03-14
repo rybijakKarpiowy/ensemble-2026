@@ -99,34 +99,36 @@ class FingerprintMLP(L.LightningModule):
         preds = torch.zeros(N, C, device=device)
 
         roots = self.roots.to(device)
-        children_list = [c.to(device) for c in self.children_list]  # move all at once
+        children_list = [c.to(device) for c in self.children_list]
+        adj = self.adj_matrix.to(device)
 
+        # Activate roots
         preds[:, roots] = (probs[:, roots] > threshold).float()
 
+        # Top-down greedy: follow single best path
         for _ in range(63):
             prev = preds.clone()
             for i in range(C):
                 children = children_list[i]
                 if len(children) == 0:
                     continue
-
-                active = preds[:, i].bool()         # (N,) — which samples have node i active
+                active = preds[:, i].bool()
                 if not active.any():
                     continue
-
-                # For active samples, find the single best child
-                child_probs          = probs[active][:, children]   # (n_active, n_children)
-                best_vals, best_idx  = child_probs.max(dim=1)       # (n_active,)
-                above_thresh         = best_vals > threshold        # (n_active,)
-
-                # Scatter: activate best child per sample if it clears threshold
-                active_samples = active.nonzero(as_tuple=True)[0]  # (n_active,)
-                activated_samples = active_samples[above_thresh]
-                activated_children = children[best_idx[above_thresh]]
-                preds[activated_samples, activated_children] = 1.0
-
+                child_probs        = probs[active][:, children]
+                best_vals, best_idx = child_probs.max(dim=1)
+                above_thresh        = best_vals > threshold
+                active_samples      = active.nonzero(as_tuple=True)[0]
+                preds[active_samples[above_thresh], children[best_idx[above_thresh]]] = 1.0
             if (preds == prev).all():
                 break
+
+        # Bottom-up: if node j is active, all its parents must be active too.
+        # Needed because ChEBI is a DAG — a node activated via one parent
+        # leaves its other parents inactive, causing consistency violations.
+        # (preds @ adj.T)[n, i] = number of active children of i → activates i if > 0
+        for _ in range(63):
+            preds = torch.max(preds, torch.matmul(preds, adj.T).clamp(0, 1))
 
         return preds
 
