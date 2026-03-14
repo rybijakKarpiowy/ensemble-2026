@@ -60,7 +60,7 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
     Train one XGBClassifier per label, evaluate on val split, log to WandB.
  
     Args:
-        cfg:        Hydra config (uses cfg.radius, cfg.model, cfg.data.val_size, cfg.seed)
+        cfg:        Hydra config (uses cfg.radius, cfg.model, cfg.data.val_size, cfg.random_seed)
         train_df:   Full training DataFrame with 'SMILES' + label columns
         label_cols: Ordered list of label column names
         adj_matrix: (num_classes, num_classes) torch.Tensor or numpy array
@@ -75,7 +75,7 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
  
     # ── Split ──────────────────────────────────────────────────────────────────
     msss = MultilabelStratifiedShuffleSplit(
-        n_splits=1, test_size=0.2, random_state=cfg.seed
+        n_splits=1, test_size=0.2, random_state=cfg.random_seed
     )
     Y_all = train_df[label_cols].values
     train_idx, val_idx = next(msss.split(train_df, Y_all))
