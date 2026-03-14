@@ -99,10 +99,14 @@ class FingerprintMLP(L.LightningModule):
         preds = torch.zeros(N, C, device=device)
 
         roots = self.roots.to(device)
+        # Get only max root predictions to start the hierarchy
+        # max_root_probs, _ = probs[:, roots].max(dim=1)
+        # preds[:, roots] = (max_root_probs > threshold).float()
+        
+        roots = self.roots.to(device)
         children_list = [c.to(device) for c in self.children_list]
         adj = self.adj_matrix.to(device)
-
-        # Activate roots
+        
         preds[:, roots] = (probs[:, roots] > threshold).float()
 
         # Top-down greedy: follow single best path
@@ -117,7 +121,7 @@ class FingerprintMLP(L.LightningModule):
                     continue
                 child_probs        = probs[active][:, children]
                 best_vals, best_idx = child_probs.max(dim=1)
-                above_thresh        = best_vals > threshold
+                above_thresh        = best_vals
                 active_samples      = active.nonzero(as_tuple=True)[0]
                 preds[active_samples[above_thresh], children[best_idx[above_thresh]]] = 1.0
             if (preds == prev).all():
