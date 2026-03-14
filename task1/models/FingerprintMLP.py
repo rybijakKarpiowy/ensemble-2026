@@ -121,7 +121,7 @@ class FingerprintMLP(L.LightningModule):
                     continue
                 child_probs        = probs[active][:, children]
                 best_vals, best_idx = child_probs.max(dim=1)
-                above_thresh        = best_vals
+                above_thresh        = best_vals > 0
                 active_samples      = active.nonzero(as_tuple=True)[0]
                 preds[active_samples[above_thresh], children[best_idx[above_thresh]]] = 1.0
             if (preds == prev).all():
