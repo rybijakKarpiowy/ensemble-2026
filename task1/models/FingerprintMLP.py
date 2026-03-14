@@ -94,21 +94,19 @@ class FingerprintMLP(L.LightningModule):
         self.log("val/graph_consistency", self.calculate_consistency_metric(consistent_preds), prog_bar=True)
 
     def apply_hierarchy_constraint(self, probs, threshold=0.5):
-        """
-        Greedy top-down single-path constraint using precomputed children_list.
-        No .nonzero() calls — children are looked up from self.children_list built at init.
-        """
         N, C = probs.shape
-        preds = torch.zeros(N, C, device=probs.device)
+        device = probs.device
+        preds = torch.zeros(N, C, device=device)
 
-        # Activate roots above threshold
-        preds[:, self.roots] = (probs[:, self.roots] > threshold).float()
+        roots = self.roots.to(device)
+        children_list = [c.to(device) for c in self.children_list]  # move all at once
 
-        # BFS-style top-down traversal — 63 passes covers the max tree depth
+        preds[:, roots] = (probs[:, roots] > threshold).float()
+
         for _ in range(63):
             prev = preds.clone()
             for i in range(C):
-                children = self.children_list[i]
+                children = children_list[i]
                 if len(children) == 0:
                     continue
 
