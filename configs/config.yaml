@@ -8,9 +8,10 @@ train:
   weight_decay: 1e-4
   gradient_clip_val: null
   early_stopping:
-    patience: 15
+    patience: 30
     mode: min
     monitor: val/loss
+  lambda_hierarchy: 0
 
 paths:
   train_data: data/processed/train

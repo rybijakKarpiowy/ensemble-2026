@@ -5,16 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as L
 from torchmetrics.classification import MultilabelF1Score
-import wandb
-from omegaconf import DictConfig, OmegaConf
-import hydra
-from pandas import read_parquet
 
-from task1.dataloader import ChemicalDataModule
-from task1.utils import prepare_hierarchy_and_weights
 
 class HierarchicalChemicalClassifier(L.LightningModule):
-    def __init__(self, input_dim, num_classes, adj_matrix, pos_weights=None, lr=1e-3):
+    def __init__(self, input_dim, num_classes, adj_matrix, pos_weights=None, lr=1e-3, lambda_hierarchy=0.05):
         """
         Args:
             input_dim: Size of input vector (e.g., 2048 for Morgan bits).
@@ -65,7 +59,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
             diff = probs[:, children] - probs[:, parents]
             violations = torch.mean(torch.relu(diff) ** 2)
             
-        return bce_loss + 0.5 * violations
+        return bce_loss + self.hparams.lambda_hierarchy * violations
 
     def calculate_consistency_metric(self, preds):
         """Tie-breaker metric: Percentage of samples with zero logical violations."""
@@ -104,6 +98,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
         
         self.log("val/loss", loss, prog_bar=True)
         self.log("val/macro_f1", self.val_f1, prog_bar=True)
+        self.log("val_macro_f1", self.val_f1)
         self.log("val/graph_consistency", consistency_score, prog_bar=True)
 
     def apply_hierarchy_constraint(self, probs, threshold=0.5):
@@ -120,74 +115,3 @@ class HierarchicalChemicalClassifier(L.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {"scheduler": scheduler, "monitor": "val/macro_f1"}
         }
-
-def get_dataloader(dataset, cfg, shuffle=False):
-    return torch.utils.data.DataLoader(
-        dataset,
-        batch_size=cfg.train.batch_size,
-        shuffle=shuffle,
-        num_workers=cfg.train.num_workers,
-        pin_memory=True,
-    )
-    
-@hydra.main(config_path="../configs", config_name="config", version_base=None)
-def main(cfg: DictConfig):
-    # Load data
-    train_df = read_parquet("task1/data/chebi_dataset_train.parquet")
-    # test_df = read_parquet("task1/data/chebi_dataset_test_empty.parquet")
-    
-    label_cols = [col for col in train_df.columns if col.startswith("class_")]
-    adj_matrix, pos_weights = prepare_hierarchy_and_weights(
-        "task1/data/chebi_classes.obo",
-        train_df, label_cols)
-    
-    # Initialize DataModule
-    dm = ChemicalDataModule(train_df, label_cols=label_cols)
-
-    # Initialize Model (from previous snippet)
-    model = HierarchicalChemicalClassifier(
-        input_dim=2048, 
-        num_classes=500, 
-        adj_matrix=adj_matrix, 
-        pos_weights=pos_weights
-    )
-    
-    # Initialize Trainer
-    checkpoint_callback = ModelCheckpoint(
-        monitor=cfg.train.early_stopping.monitor,
-        dirpath="task1/checkpoints",
-        filename="model-{epoch:02d}-{val_loss:.2f}",
-        mode=cfg.train.early_stopping.mode,
-        save_top_k=3,
-        save_last=True,
-    )
-
-    early_stopping = EarlyStopping(
-        monitor=cfg.train.early_stopping.monitor,
-        patience=cfg.train.early_stopping.patience,
-        mode=cfg.train.early_stopping.mode,
-        verbose=True,
-    )
-
-    lr_monitor = LearningRateMonitor(logging_interval="epoch")
-    
-    wandb_logger = WandbLogger(
-        project="Ensemble-2026-task1",
-        name=f"baseline_run",
-        config=OmegaConf.to_container(cfg, resolve=True),
-    )
-
-    trainer = L.Trainer(
-        max_epochs=cfg.train.epochs,
-        callbacks=[checkpoint_callback, early_stopping, lr_monitor],
-        accelerator="auto",
-        log_every_n_steps=10,
-        logger=wandb_logger,
-        gradient_clip_val=cfg.train.gradient_clip_val,
-    )
-
-    # Fit
-    trainer.fit(model, datamodule=dm)
-    
-if __name__ == "__main__":
-    main() # type: ignore
