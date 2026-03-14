@@ -57,9 +57,9 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_pat
             
             # Apply the hierarchy constraint (The Tie-Breaker)
             # This ensures that if a child is predicted, all parents are too.
-            # consistent_preds = model.apply_hierarchy_constraint(probs, threshold=0.5)
+            consistent_preds = model.apply_hierarchy_constraint(probs, threshold=0.5)
             # TODO: check with consistency constraint or not for final submission
-            consistent_preds = (probs > 0.5)
+            # consistent_preds = (probs > 0.5)
             all_preds.append(consistent_preds.cpu().numpy())
 
     # 5. Prepare Submission DataFrame

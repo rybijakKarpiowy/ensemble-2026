@@ -33,7 +33,7 @@ def main():
         raise FileExistsError(f"Parquet file did not load properly, error {e}")
     
     # show example parquet data and df structure
-    print(df)
+    print(df.head())
 
     headers = {
         "X-API-Token": API_TOKEN
