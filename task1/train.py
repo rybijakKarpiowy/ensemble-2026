@@ -32,6 +32,19 @@ def main(cfg: DictConfig):
         from task1.models.xgboost_trainer import train_xgboost
         train_xgboost(cfg, train_df, label_cols, adj_matrix)
         return
+    if cfg.model.type == "xgboost_test":
+        from task1.models.xgboost_predict import test_xgboost
+        test_df = read_parquet("task1/data/chebi_dataset_test_empty.parquet")
+        test_xgboost(
+            cfg         = cfg,
+            test_df     = test_df,
+            label_cols  = label_cols,
+            adj_matrix  = adj_matrix,
+            models_path = cfg.model.models_path,
+            out_path    = cfg.model.out_path,
+            fp_path     = cfg.model.get("fingerprints_path", None),
+        )
+        return
     
     # Initialize DataModule
     dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
