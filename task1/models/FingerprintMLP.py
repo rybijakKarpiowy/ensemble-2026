@@ -22,7 +22,6 @@ class FingerprintMLP(L.LightningModule):
         
         # 1. Architecture
         self.model = nn.Sequential(
-            nn.BatchNorm1d(input_dim),
             nn.Linear(input_dim, 1024),
             nn.ReLU(),
             nn.Dropout(0.2),
