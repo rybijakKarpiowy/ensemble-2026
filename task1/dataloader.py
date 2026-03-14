@@ -30,7 +30,15 @@ class ChemicalDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.cache_path = cache_path + f"_radius_{radius}.pt"
         # Keep parameters consistent to avoid loading "wrong" cache
-        self.fp_transformer = ECFPFingerprint(fp_size=2048, radius=radius, n_jobs=-1)
+        self.fp_transformer = ECFPFingerprint(
+            fp_size=2048,
+            radius=radius,
+            n_jobs=-1,
+            use_pharmacophoric_invariants=True,
+            include_chirality=True,
+            use_bond_types=True,
+            include_ring_membership=True
+        )
 
     def setup(self, stage=None):
         # 1. Check for cache
