@@ -6,7 +6,7 @@ train:
   learning_rate: 1e-3
   normalize_data: true
   weight_decay: 1e-4
-  gradient_clip_val: null
+  gradient_clip_val: 1.0
   early_stopping:
     patience: 30
     mode: min
