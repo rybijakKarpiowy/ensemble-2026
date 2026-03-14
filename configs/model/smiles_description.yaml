@@ -4,3 +4,4 @@ label_embeddings_path: task1/data/label_embeddings.pt
 proj_dim: 512
 dropout: 0.2
 hierarchy_depth: 63
+max_length: 128

@@ -54,8 +54,22 @@ def main(cfg: DictConfig):
         train_df, label_cols,
     )
 
+    
     # DataModule — SMILES column used when model needs it, fingerprints otherwise
-    dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
+    if cfg.model.type == "smiles_description":
+        from task1.datasets.BERTdataset import SMILESDataModule
+        dm = SMILESDataModule(
+            df=train_df,
+            label_cols=label_cols,
+            val_size=cfg.data.val_size,
+            encoder_name=cfg.model.smiles_encoder,
+            batch_size=cfg.train.batch_size,
+            num_workers=cfg.data.num_workers,
+            max_length=cfg.model.max_length,
+            seed=cfg.seed,
+        )
+    else:
+        dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
 
     # Model selection
     model = build_model(cfg, adj_matrix, pos_weights)
@@ -64,7 +78,7 @@ def main(cfg: DictConfig):
     run_id = wandb.util.generate_id()  # type: ignore
     checkpoint_callback = ModelCheckpoint(
         monitor="val/macro_f1",
-        dirpath=f"task1/checkpoints/{run_id}_{cfg.model.type}_radius_{cfg.radius}",
+        dirpath=f"task1/checkpoints/{run_id}_{cfg.model.type}",
         filename="model-{epoch:02d}-{val_macro_f1:.4f}",
         mode="max",
         save_top_k=3,
