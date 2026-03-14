@@ -63,8 +63,8 @@ def main(cfg: DictConfig):
             label_cols=label_cols,
             val_size=0.2,
             encoder_name=cfg.model.smiles_encoder,
-            batch_size=cfg.train.batch_size,
-            num_workers=cfg.data.num_workers,
+            batch_size=512,
+            num_workers=8,
             max_length=cfg.model.max_length,
             seed=cfg.seed,
         )
