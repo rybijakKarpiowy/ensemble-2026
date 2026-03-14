@@ -28,7 +28,12 @@ def main(cfg: DictConfig):
         train_df, label_cols)
     
     # Initialize DataModule
-    dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
+    dm = ChemicalDataModule(
+        train_df,
+        label_cols=label_cols,
+        radius=cfg.radius,
+        batch_size=1024,
+    )
 
     # Initialize Model (from previous snippet)
     model = FingerprintMLP(

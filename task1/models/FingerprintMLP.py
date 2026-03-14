@@ -22,7 +22,11 @@ class FingerprintMLP(L.LightningModule):
         
         # 1. Architecture
         self.model = nn.Sequential(
+            nn.BatchNorm1d(input_dim),
             nn.Linear(input_dim, 1024),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(1024, 1024),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(1024, 512),
@@ -81,12 +85,8 @@ class FingerprintMLP(L.LightningModule):
         logits = self(x)
         
         epoch = self.current_epoch
-        
-        if epoch < 20:
-            alpha = 0.0
-        else:
-            alpha = min(1.0, epoch / 40)  # Linearly increase lambda over first 10 epochs
-            
+        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
+
         loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
         probs = torch.sigmoid(logits)
@@ -102,10 +102,7 @@ class FingerprintMLP(L.LightningModule):
         logits = self(x)
             
         epoch = self.current_epoch
-        if epoch < 20:
-            alpha = 0.0
-        else:
-            alpha = min(1.0, epoch / 40)  # Linearly increase lambda over first 10 epochs
+        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
             
         loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
