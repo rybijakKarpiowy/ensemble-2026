@@ -72,7 +72,7 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
 
     # ── Split ──────────────────────────────────────────────────────────────────
     train_split, val_split = train_test_split(
-        train_df, test_size=cfg.data.val_size, random_state=cfg.seed, shuffle=True
+        train_df, test_size=0.2, random_state=cfg.random_seed, shuffle=True
     )
     print(f"Split — train: {len(train_split):,}  val: {len(val_split):,}")
 
@@ -106,7 +106,7 @@ def train_xgboost(cfg, train_df, label_cols, adj_matrix, out_dir: str = "task1/c
     run = wandb.init(
         project = "Ensemble-2026-task1",
         name    = f"xgboost_radius_{cfg.radius}",
-        config  = dict(xgb_params, radius=cfg.radius, val_size=cfg.data.val_size),
+        config  = dict(xgb_params, radius=cfg.radius, val_size=0.2),
     )
 
     for idx, col in enumerate(tqdm(label_cols, desc="Training classifiers")):
