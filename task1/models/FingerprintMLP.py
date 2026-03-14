@@ -52,6 +52,21 @@ class FingerprintMLP(L.LightningModule):
             
         return bce_loss
 
+    def soft_macro_f1(self, logits, targets):
+        probs = torch.sigmoid(logits)
+        
+        # tp, fp, fn calculated per class (dim 0 is batch)
+        tp = (targets * probs).sum(dim=0)
+        fp = ((1 - targets) * probs).sum(dim=0)
+        fn = (targets * (1 - probs)).sum(dim=0)
+
+        # Calculate F1 per class
+        soft_f1 = 2 * tp / (2 * tp + fp + fn + 1e-7)
+        
+        # Return 1 - mean(F1) so we can minimize it
+        # This treats a sparse leaf node exactly the same as a root node
+        return 1 - soft_f1.mean()
+
     def calculate_consistency_metric(self, preds):
         """Tie-breaker metric: Percentage of samples with zero logical violations."""
         # (N, num_parents) -> sum of active children for each parent
@@ -64,7 +79,7 @@ class FingerprintMLP(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.bce_loss(logits, y)
+        loss = self.bce_loss(logits, y) + self.soft_macro_f1(logits, y)
         
         probs = torch.sigmoid(logits)
         self.train_f1(probs, y)
