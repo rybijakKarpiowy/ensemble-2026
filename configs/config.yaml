@@ -10,7 +10,7 @@ train:
   early_stopping:
     patience: 15
     mode: min
-    monitor: val_loss
+    monitor: val/loss
 
 paths:
   train_data: data/processed/train
