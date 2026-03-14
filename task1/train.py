@@ -40,7 +40,7 @@ def main(cfg: DictConfig):
             test_df     = test_df,
             label_cols  = label_cols,
             adj_matrix  = adj_matrix,
-            models_path = cfg.model.models_path,
+            models_path = "task1/checkpoints/xgboost/models.joblib",
             out_path    = cfg.model.out_path,
             fp_path     = cfg.model.get("fingerprints_path", None),
         )
