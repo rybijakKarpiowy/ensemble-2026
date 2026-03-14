@@ -40,7 +40,7 @@ def main(cfg: DictConfig):
     )
     
     # Initialize Trainer    
-    run_id = wandb.util.generate_id()
+    run_id = wandb.util.generate_id() # type: ignore
     checkpoint_callback = ModelCheckpoint(
         monitor="val/macro_f1",
         dirpath=f"task1/checkpoints/{run_id}",

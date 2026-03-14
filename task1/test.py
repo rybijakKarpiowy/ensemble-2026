@@ -73,12 +73,11 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_pat
     # Create the result dataframe
     result_df = pd.DataFrame(predictions, columns=class_cols, index=test_df.index)
     
-    # Ensure mol_id is preserved if it exists
-    if 'mol_id' in test_df.columns:
-        result_df.insert(0, 'mol_id', test_df['mol_id'])
-    else:
-        # If mol_id isn't a column, try the index
-        result_df.insert(0, 'mol_id', test_df.index)
+    # Join with the original test_df to include SMILES and any other required columns
+    result_df = test_df.join(result_df)
+    
+    print("Inference completed. Sample predictions:")
+    # print(result_df.head())
 
     # 6. Save to Parquet
     print(f"Saving predictions to {output_parquet}...")
