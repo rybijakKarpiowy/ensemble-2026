@@ -61,7 +61,7 @@ def main(cfg: DictConfig):
         dm = SMILESDataModule(
             df=train_df,
             label_cols=label_cols,
-            val_size=cfg.data.val_size,
+            val_size=0.2,
             encoder_name=cfg.model.smiles_encoder,
             batch_size=cfg.train.batch_size,
             num_workers=cfg.data.num_workers,
