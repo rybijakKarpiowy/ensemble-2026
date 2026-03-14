@@ -107,9 +107,7 @@ def test_xgboost(
         print("No ground truth labels found — skipping evaluation.")
 
     # ── Save ──────────────────────────────────────────────────────────────────
-    # Prepend mol_id if available so predictions can be joined back to the source
-    if "mol_id" in test_df.columns:
-        pred_df.insert(0, "mol_id", test_df["mol_id"].values)
+    pred_df = test_df.join(pred_df)  # keep SMILES and any other columns, plus predicted labels
 
     pred_df.to_parquet(out_path, index=False)
     print(f"Saved predictions → {out_path}  shape={pred_df.shape}")
