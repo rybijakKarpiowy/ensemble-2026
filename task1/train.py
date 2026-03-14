@@ -31,7 +31,7 @@ def build_model(cfg, adj_matrix, pos_weights):
             adj_matrix=adj_matrix,
             label_embeddings=label_embeddings,
             pos_weights=pos_weights,
-            lr=cfg.train.lr,
+            lr=cfg.train.learning_rate,
             proj_dim=cfg.model.proj_dim,
             dropout=cfg.model.dropout,
             smiles_encoder_name=cfg.model.smiles_encoder,
