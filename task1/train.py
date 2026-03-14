@@ -41,7 +41,7 @@ def main(cfg: DictConfig):
             label_cols  = label_cols,
             adj_matrix  = adj_matrix,
             models_path = "task1/checkpoints/xgboost/models.joblib",
-            out_path    = cfg.model.out_path,
+            out_path    = "task1/data/submission.parquet",
             fp_path     = cfg.model.get("fingerprints_path", None),
         )
         return
