@@ -99,36 +99,47 @@ class FingerprintMLP(L.LightningModule):
     #         preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
     #     return preds
     
-    def apply_hierarchy_constraint(self, probs, threshold=0.5, iterations=7, alpha=0.3):
+    def apply_hierarchy_constraint(self, probs, threshold=0.5):
         """
-        probs: (N, 500) raw sigmoid probabilities
-        iterations: Number of message passing steps (usually 2-5 is enough)
-        alpha: Strength of the influence (0.0 to 1.0)
+        probs: (N, 500) raw sigmoid probabilities from the model
+        threshold: Standard 0.5 classification threshold
         """
-        # Work on a copy of probabilities
-        refined_probs = probs.clone()
+        # 1. Initial hard predictions based on threshold
+        preds = (probs > threshold).float()
         
-        for _ in range(iterations):
-            # 1. Bottom-Up: Child confidence influences Parent
-            # For each parent, find the MAX confidence of its children
-            # (N, 500) @ (500, 500).T
-            child_influence = torch.matmul(refined_probs, self.adj_matrix.T)
+        # 2. Iterate through the depth (63 levels)
+        # To enforce "Child=1 ONLY IF Parent=1", we propagate Top-Down.
+        # Note: adj_matrix[i, j] = 1 means i is parent, j is child.
+        
+        # We do this 63 times to ensure the constraint 
+        # ripples from the root all the way to the deepest leaf.
+        for _ in range(63):
+            # Find which nodes have at least one parent that is currently 0
+            # (N, 500) @ (500, 500) -> parent_presence[n, j] is > 0 if any parent of j is 1
+            # To find if ALL parents are 0, we can look at the sum.
             
-            # 2. Top-Down: Parent confidence influences Child
-            # For each child, see the confidence of its parent
-            parent_influence = torch.matmul(refined_probs, self.adj_matrix)
+            # However, the simpler logic for "Parent must be 1":
+            # preds_child = preds_child AND (at least one parent is 1)
+            # Note: If a node is a root, it has no parents in adj_matrix. 
+            # We must preserve roots.
             
-            # 3. Update probabilities softly
-            # We use torch.max for Upward to ensure P(parent) >= P(child)
-            # We use a weighted average for Downward to "nudge" children
-            upward = torch.max(refined_probs, child_influence)
-            downward = refined_probs + (alpha * parent_influence)
+            has_parents = (self.adj_matrix.sum(dim=0) > 0).float() # (500,)
+            parent_active = (torch.matmul(preds, self.adj_matrix) > 0).float() # (N, 500)
             
-            # Combine and clamp to [0, 1]
-            refined_probs = torch.clamp((upward + downward) / 2, 0, 1)
+            # Logic: If you have parents, you MUST have an active parent to stay 1.
+            # If has_parents is 0 (root), the mask becomes (0 + 1) = 1 (always allowed)
+            # If has_parents is 1, the mask is (parent_active)
+            mask = (1 - has_parents) + (has_parents * parent_active)
+            
+            preds = preds * mask
 
-        # Apply the final threshold for the submission
-        preds = (refined_probs > threshold).float()
+        # 3. Final Bottom-Up check (The Tie-Breaker)
+        # The competition metric says: If child is 1, parent MUST be 1.
+        # The step above ensures children don't exist without parents.
+        # This step ensures parents exist if children exist.
+        for _ in range(63):
+            preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
+            
         return preds
         
 
