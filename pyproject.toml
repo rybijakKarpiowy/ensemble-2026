@@ -1,0 +1,13 @@
+[project]
+name = "ensemble-2026"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy<2.0.0",
+    "pytorch-lightning>=2.6.1",
+    "scikit-fingerprints>=1.18.0",
+    "scikit-learn>=1.8.0",
+    "torch>=2.10.0",
+]
