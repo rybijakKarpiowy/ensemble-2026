@@ -87,7 +87,14 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, adj_matrix_pat
 if __name__ == "__main__":
     input_file = "task1/data/chebi_dataset_test_empty.parquet"
     output_file = "task1/data/submission.parquet"
-    checkpoint_folder = "task1/checkpoints/qpc12n6o"
+    checkpoint_folder = "task1/checkpoints/"
+    
+    # Get the last modified checkpoint folder (assuming each run creates a new folder)
+    checkpoint_folders = [f for f in os.listdir(checkpoint_folder) if os.path.isdir(os.path.join(checkpoint_folder, f))]
+    if not checkpoint_folders:
+        raise FileNotFoundError(f"No checkpoint folders found in {checkpoint_folder}")
+    latest_folder = max(checkpoint_folders, key=lambda x: os.path.getmtime(os.path.join(checkpoint_folder, x)))
+    checkpoint_folder = os.path.join(checkpoint_folder, latest_folder)
     
     # Look for the best checkpoint in the folder (based on filename pattern)
     checkpoint_files = [f for f in os.listdir(checkpoint_folder) if f.endswith(".ckpt") and f.startswith("model")]

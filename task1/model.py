@@ -107,6 +107,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
         for _ in range(63):
             preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
         return preds
+    
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=1e-4)
