@@ -8,7 +8,7 @@ import pytorch_lightning as L
 from skfp.fingerprints import ECFPFingerprint
 from tqdm import tqdm
 import os
-from task1.model import HierarchicalChemicalClassifier
+from task1.models.FingerprintMLP import FingerprintMLP
 from task1.utils import prepare_hierarchy_and_weights
 
 
@@ -39,7 +39,7 @@ def run_inference(input_parquet, output_parquet, checkpoint_path, radius=2, adj_
     adj_matrix, pos_weights = prepare_hierarchy_and_weights(adj_matrix_path, train_df, [f"class_{i}" for i in range(500)])
     
     # We load with map_location to ensure it works on CPU if no GPU is available
-    model = HierarchicalChemicalClassifier(2048, 500, adj_matrix, pos_weights) # Dummy init to load state dict
+    model = FingerprintMLP(2048, 500, adj_matrix, pos_weights) # Dummy init to load state dict
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()

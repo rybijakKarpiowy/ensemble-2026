@@ -20,4 +20,4 @@ paths:
   model_checkpoint: checkpoints/
 
 random_seed: 42
-radius: 3
+radius: 2

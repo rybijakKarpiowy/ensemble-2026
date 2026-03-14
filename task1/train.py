@@ -10,7 +10,7 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 from pandas import read_parquet
 from task1.dataloader import ChemicalDataModule
-from task1.model import HierarchicalChemicalClassifier
+from task1.models.FingerprintMLP import FingerprintMLP
 from task1.utils import prepare_hierarchy_and_weights, set_seed
 
     
@@ -31,7 +31,7 @@ def main(cfg: DictConfig):
     dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
 
     # Initialize Model (from previous snippet)
-    model = HierarchicalChemicalClassifier(
+    model = FingerprintMLP(
         input_dim=2048, 
         num_classes=500, 
         adj_matrix=adj_matrix, 

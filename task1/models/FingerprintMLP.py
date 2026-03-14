@@ -7,7 +7,7 @@ import pytorch_lightning as L
 from torchmetrics.classification import MultilabelF1Score
 
 
-class HierarchicalChemicalClassifier(L.LightningModule):
+class FingerprintMLP(L.LightningModule):
     def __init__(self, input_dim, num_classes, adj_matrix, pos_weights=None, lr=1e-3, lambda_hierarchy=0.05):
         """
         Args:
@@ -44,22 +44,13 @@ class HierarchicalChemicalClassifier(L.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def hierarchical_loss(self, logits, targets):
+    def bce_loss(self, logits, targets):
         # Weighted BCE to handle sparse leaf nodes
         bce_loss = F.binary_cross_entropy_with_logits(
             logits, targets, pos_weight=self.pos_weights
         )
-        
-        # Consistency Penalty (P_child <= P_parent)
-        probs = torch.sigmoid(logits)
-        parents, children = torch.where(self.adj_matrix > 0)
-        
-        violations = 0
-        if len(parents) > 0:
-            diff = probs[:, children] - probs[:, parents]
-            violations = torch.mean(torch.relu(diff) ** 2)
             
-        return bce_loss + self.hparams.lambda_hierarchy * violations
+        return bce_loss
 
     def calculate_consistency_metric(self, preds):
         """Tie-breaker metric: Percentage of samples with zero logical violations."""
@@ -73,7 +64,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.hierarchical_loss(logits, y)
+        loss = self.bce_loss(logits, y)
         
         probs = torch.sigmoid(logits)
         self.train_f1(probs, y)
@@ -86,7 +77,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = self.hierarchical_loss(logits, y)
+        loss = self.bce_loss(logits, y)
         
         # Apply constraint for the tie-breaker/inference
         raw_probs = torch.sigmoid(logits)
@@ -101,13 +92,41 @@ class HierarchicalChemicalClassifier(L.LightningModule):
         self.log("val_macro_f1", self.val_f1)
         self.log("val/graph_consistency", consistency_score, prog_bar=True)
 
-    def apply_hierarchy_constraint(self, probs, threshold=0.5):
-        preds = (probs > threshold).float()
-        # Bottom-up propagation: If child=1, parent=1
-        for _ in range(63):
-            preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
-        return preds
+    # def apply_hierarchy_constraint(self, probs, threshold=0.5):
+    #     preds = (probs > threshold).float()
+    #     # Bottom-up propagation: If child=1, parent=1
+    #     for _ in range(63):
+    #         preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
+    #     return preds
     
+    def apply_hierarchy_constraint(self, probs, threshold=0.5, alpha=0.2, beta=0.8):
+        """
+        probs: (N, 500) raw probabilities
+        alpha: Top-down influence strength (Parent -> Child)
+        beta: Bottom-up influence strength (Child -> Parent)
+        """
+        # Use a copy to avoid in-place issues
+        refined_probs = probs.clone()
+
+        # With a depth of 63, matrix powers or a loop is necessary.
+        # We use a power-iteration style to let confidence flow.
+        for _ in range(5): # 5 iterations is usually enough for confidence to propagate
+            # 1. Bottom-Up: A child's confidence reinforces the parent
+            # We use a 'beta' weight to ensure parents are strongly supported by children
+            child_to_parent = torch.matmul(refined_probs, self.adj_matrix.T)
+            refined_probs = torch.max(refined_probs, child_to_parent * beta)
+            
+            # 2. Top-Down: A parent's confidence "nudges" the child
+            # This is the "alpha" nudge - helps with those sparse leaf nodes
+            parent_to_child = torch.matmul(refined_probs, self.adj_matrix)
+            refined_probs = refined_probs + (alpha * parent_to_child)
+            
+            # Keep values in probability space
+            refined_probs = torch.clamp(refined_probs, 0, 1)
+
+        # Final hard threshold for the .parquet submission
+        return (refined_probs > threshold).float()
+        
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=1e-4)

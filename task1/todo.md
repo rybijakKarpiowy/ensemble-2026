@@ -1,0 +1,2 @@
+- [ ] enforce soft hierarchy
+- [ ] use different model
