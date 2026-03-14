@@ -26,7 +26,7 @@ class ECGDataset(Dataset):
         img_path = os.path.join(self.image_dir, img_name)
         
         # Mask names typically mirror image names (e.g., ecg_001.png -> ecg_001_mask.png)
-        mask_name = img_name.replace('.png', '_mask.png')
+        mask_name = img_name
         mask_path = os.path.join(self.mask_dir, mask_name)
 
         # Load image (RGB) and mask (Grayscale)
