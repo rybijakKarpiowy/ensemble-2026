@@ -1,0 +1,8 @@
+type: xgboost
+n_estimators: 300
+max_depth: 6
+learning_rate: 0.1
+subsample: 0.8
+colsample_bytree: 0.8
+device: cpu          # set to "cuda" if you want GPU-accelerated XGBoost
+n_jobs: -1

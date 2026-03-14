@@ -1,5 +1,6 @@
 defaults:
   - _self_
+  - model: xgboost
 
 train:
   epochs: 500

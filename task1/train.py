@@ -27,6 +27,12 @@ def main(cfg: DictConfig):
         "task1/data/chebi_classes.obo",
         train_df, label_cols)
     
+     # ── XGBoost: skips Lightning entirely ─────────────────────────────────────
+    if cfg.model.type == "xgboost":
+        from task1.models.xgboost_trainer import train_xgboost
+        train_xgboost(cfg, train_df, label_cols, adj_matrix)
+        return
+    
     # Initialize DataModule
     dm = ChemicalDataModule(train_df, label_cols=label_cols, radius=cfg.radius)
 
