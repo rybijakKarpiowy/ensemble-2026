@@ -81,7 +81,11 @@ class FingerprintMLP(L.LightningModule):
         logits = self(x)
         
         epoch = self.current_epoch
-        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
+        
+        if epoch < 20:
+            alpha = 0.0
+        else:
+            alpha = min(1.0, epoch / 40)  # Linearly increase lambda over first 10 epochs
             
         loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
@@ -98,7 +102,10 @@ class FingerprintMLP(L.LightningModule):
         logits = self(x)
             
         epoch = self.current_epoch
-        alpha = min(1.0, epoch / 20)  # Linearly increase lambda over first 10 epochs
+        if epoch < 20:
+            alpha = 0.0
+        else:
+            alpha = min(1.0, epoch / 40)  # Linearly increase lambda over first 10 epochs
             
         loss = (1 - alpha) * self.bce_loss(logits, y) + alpha * self.soft_macro_f1(logits, y)
         
