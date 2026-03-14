@@ -104,7 +104,7 @@ class HierarchicalChemicalClassifier(L.LightningModule):
     def apply_hierarchy_constraint(self, probs, threshold=0.5):
         preds = (probs > threshold).float()
         # Bottom-up propagation: If child=1, parent=1
-        for _ in range(8): # Increased depth for complex chemical ontologies
+        for _ in range(63):
             preds = torch.max(preds, torch.matmul(preds, self.adj_matrix.T).clamp(0, 1))
         return preds
 

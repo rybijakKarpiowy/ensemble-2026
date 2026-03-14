@@ -61,7 +61,7 @@ def main(cfg: DictConfig):
     
     wandb_logger = WandbLogger(
         project="Ensemble-2026-task1",
-        name=f"baseline_run",
+        name=f"radius_2_enforce_hierarchy_run_{run_id}",
         config=OmegaConf.to_container(cfg, resolve=True),
     )
 
