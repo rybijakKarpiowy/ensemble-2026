@@ -212,3 +212,7 @@ __marimo__/
 task2/data
 task2/data-old
 task2/predictions/not-best
+tasks-2026/
+.env
+ecg_dataset/
+
